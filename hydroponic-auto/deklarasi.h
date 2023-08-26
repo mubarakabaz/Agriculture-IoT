@@ -3,8 +3,9 @@
 #include <SD.h>
 
 // Inisialisasi Pin RTC
+#include <Wire.h>
 #include <RTClib.h>
-RTC_DS1307 rtc;
+
 
 // Inisilaisasi LCD Display
 #include <LiquidCrystal_I2C.h>
@@ -18,11 +19,11 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);
 float voltage, phValue;
 
 // inisialisasi pin sensor TDS
-#define TdsSensorPin D35
-#define VREF 3.0      // analog reference voltage(Volt) of the ADC
-#define SCOUNT  30           // sum of sample point
-int analogBuffer[SCOUNT];    // store the analog value in the array, read from ADC
+#define TDS_PIN D35
+#define VREF 3.0      // tegangan referensi analog (Volt) dari ADC
+#define SCOUNT  10           // jumlah titik sampel
+int analogBuffer[SCOUNT];    // menyimpan nilai analog dalam array, membaca dari ADC
 int analogBufferTemp[SCOUNT];
 int analogBufferIndex = 0,copyIndex = 0;
-float averageVoltage = 0,tdsValue = 0,temperature = 25;
+float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
