@@ -7,6 +7,9 @@
 #include <Wire.h>
 #include <RTClib.h>
 
+// inisialisasi Pin Relay SSR
+const int RELAY_PIN_1 = 4;
+const int RELAY_PIN_2 = 27;
 
 // Inisilaisasi LCD Display
 #include <LiquidCrystal_I2C.h>
@@ -52,6 +55,14 @@ void setup() {
     while (1)
       ;
   }
+
+  // Inisialisasi pin Relay
+  pinMode(RELAY_PIN_1, OUTPUT);
+  pinMode(RELAY_PIN_2, OUTPUT);
+
+  // Mematikan relay saat program dimulai
+  digitalWrite(RELAY_PIN_1, LOW);
+  digitalWrite(RELAY_PIN_2, LOW);
 
   // Inisialisasi LCD
   lcd.begin();
@@ -171,7 +182,7 @@ void loop() {
     lcd.print("pH: ");
     lcd.setCursor(9, 1);
     lcd.print(phValue);
-    lcd.seCursor(10, 1);
+    lcd.setCursor(10, 1);
     lcd.print("TDS: ");
     lcd.setCursor(16, 1);
     lcd.print(tdsValue);
