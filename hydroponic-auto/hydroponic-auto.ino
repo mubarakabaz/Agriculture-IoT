@@ -19,16 +19,16 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);
 #include <EEPROM.h>
 
 // Inisialisasi PIN Sensor pH Meter
-#define PH_PIN 34 // Pin GPIO36
+#define PH_PIN 34  // Pin GPIO36
 float voltage, phValue;
 
 // inisialisasi pin sensor TDS
 #define TDS_PIN 35
-#define VREF 3.0      // tegangan referensi analog (Volt) dari ADC
-#define SCOUNT  10           // jumlah titik sampel
-int analogBuffer[SCOUNT];    // menyimpan nilai analog dalam array, membaca dari ADC
+#define VREF 3.0           // tegangan referensi analog (Volt) dari ADC
+#define SCOUNT 10          // jumlah titik sampel
+int analogBuffer[SCOUNT];  // menyimpan nilai analog dalam array, membaca dari ADC
 int analogBufferTemp[SCOUNT];
-int analogBufferIndex = 0,copyIndex = 0;
+int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
 #include <ThingerESP32.h>
@@ -41,10 +41,16 @@ const int CS = 5;
 
 byte statusR1, statusR2;
 
-const unsigned long interval = 60000U; // Interval waktu (1 menit dalam milisekon)
+const unsigned long interval = 60000U;  // Interval waktu (1 menit dalam milisekon)
 unsigned long previousMillis = 0;
 
 void setup() {
+  // Hubungkan ke Jaringan WiFi
+  WiFi.begin(SSID, SSID_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
   // serial untuk debugging
   Serial.begin(115200);
 
@@ -96,15 +102,25 @@ void setup() {
   thing.add_wifi(SSID, SSID_PASSWORD);
 
   //mulai koneksi ke Thinger.io
-  thing["PH"] >> inputValue(phValue);    // nilai pH yang akan dikirim
+  thing["umur"] >> inputValue
+  thing["PH"] >> inputValue(phValue);    // nilai pH yang akan dikirim klo gagal kirim data coba ganti panahnya jadi "<<"
   thing["TDS"] >> inputValue(tdsValue);  // nilai TDS yang akan dikirim
   // thing.start();
 }
 
 void loop() {
   unsigned long currentMillis = millis();
+
   // Baca waktu dari RTC
   DateTime now = rtc.now();
+
+  /*
+  * Inisisalisasi tanggal dimulai menanam;
+  * Pastikan sebelum mengupload program ke ESP32
+  * agar mengubah tanggal dibawah;
+  */
+  DateTime tanggalTanam(2023, 1, 1);
+
   String waktuSekarang = String(now.day(), DEC) + "-"
                          + String(now.month(), DEC) + "-"
                          + String(now.year(), DEC) + " "
@@ -112,6 +128,10 @@ void loop() {
                          + String(now.minute(), DEC) + ":"
                          + String(now.second(), DEC);
 
+
+  int umurTanaman = hitungUmurTanaman();
+
+  
   // Baca data dari sensor TDS
   static unsigned long analogSampleTimepoint = millis();
   if (millis() - analogSampleTimepoint > 40U) {
@@ -139,32 +159,37 @@ void loop() {
     float compensationVoltage = averageVoltage / compensationCoefficient;
     tdsValue = (133.42 * compensationVoltage * compensationVoltage * compensationVoltage - 255.86 * compensationVoltage * compensationVoltage + 857.39 * compensationVoltage) * 0.5;
   }
-
+    
   thing.handle();  // Kirim data Pengukuran Sensor ke Thinger.io
-
-  dataFile = SD.open("data_konoff.txt", FILE_WRITE);
-  if (dataFile) {
-    dataFile.println("Waktu: " + waktuSekarang);
-    dataFile.println("Pengukuran Sensor:");
-    dataFile.print("pH: ");
-    dataFile.print(phValue);
-    dataFile.print(" TDS: ");
-    dataFile.print(tdsValue);
-    dataFile.print("ppm");
-    dataFile.println("Status Selenoid: ");
-    dataFile.print("S1: ");
-    dataFile.print(statusR1);
-    dataFile.print(" S2: ");
-    dataFile.print(statusR2);
-
-    dataFile.close();
-    Serial.println("Data berhasil disimpan di SD Card.");
-  } else {
-    Serial.println("Gagal menyimpan data di SD Card!");
-  }
 
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
+    
+    byte statusSdCard;
+
+    dataFile = SD.open("data_konoff.txt", FILE_WRITE);
+    if (dataFile) {
+      dataFile.println("Waktu: " + waktuSekarang);
+      dataFile.println("Pengukuran Sensor:");
+      dataFile.print("pH: ");
+      dataFile.print(phValue);
+      dataFile.print(" TDS: ");
+      dataFile.print(tdsValue);
+      dataFile.print("ppm");
+      dataFile.println("Status Selenoid: ");
+      dataFile.print("S1: ");
+      dataFile.print(statusR1);
+      dataFile.print(" S2: ");
+      dataFile.print(statusR2);
+
+      dataFile.close();
+      Serial.println("Data berhasil disimpan di SD Card.");
+      statusSdCard = "Berhasil";
+    } else {
+      Serial.println("Gagal menyimpan data di SD Card!");
+      statusSdCard = Gagal;
+    }
+
 
     Serial.print("pH : ");
     Serial.print(phValue, 2);
@@ -200,8 +225,15 @@ void loop() {
     lcd.print("SD Card:");
     lcd.setCursor(9, 3);
     lcd.print(statusSdCard);
+
+    delay(5000);  // jeda 5 detik sebelum kembali membaca sensor
   }
-  delay(5000);  // jeda 5 detik sebelum kembali membaca sensor
+}
+
+int hitungUmurTanaman(DateTime tanggalSekarang, DateTime tanggalTanam) {
+  DateTime now = rtc.now();
+  TimeSpan selisih = tanggalSekarang - tanggalTanam;
+  return selisih.days();
 }
 
 // deklarasi fungsi 'getMedianNum' yang mengambil dua parameter,
